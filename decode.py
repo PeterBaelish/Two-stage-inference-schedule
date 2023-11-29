@@ -53,6 +53,7 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
             first_kv_caches = next_kv_caches
 
         streams[1].synchronize()
+        streams[2].synchronize()
 
     return [text for text in generated_texts if text is not None], kv_caches
 
