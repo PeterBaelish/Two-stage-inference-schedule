@@ -14,15 +14,15 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
     generated_texts = [None] * len(input_texts)
     streams = [Stream(device=device) for _ in range(2)]
 
-    current_kv_caches = [kv_caches[i].to(device) for i in range(min(batch_size, len(ordered_sentences)))] if ordered_sentences else []
+    batch_len = min(batch_size, len(ordered_sentences))
+    current_kv_caches = [kv_caches[i].to(device) for i in range(batch_len)] if ordered_sentences else []
+    current_batch_indices = [ordered_sentences[i][2] for i in range(batch_len)]
+    current_batch = [ordered_sentences[i][1] for i in range(batch_len)]
+    input_ids = torch.cat([tokenizer.encode(text, return_tensors='pt') for text in current_batch], dim=0).to(device)
     is_first = True
     
     while ordered_sentences:
         batch_len = min(batch_size, len(ordered_sentences))
-        current_indices = [ordered_sentences[i][2] for i in range(batch_len)]
-        current_batch = [ordered_sentences[i][1] for i in range(batch_len)]
-
-        input_ids = torch.cat([tokenizer.encode(text, return_tensors='pt') for text in current_batch], dim=0).to(device)
 
         # 调整最大长度限制
         adjusted_max_length = max_length if len(ordered_sentences) >= batch_size else None
@@ -32,6 +32,8 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
                                           use_cache=True, return_dict_in_generate=True, past_key_values=current_kv_caches)
 
         with torch.cuda.stream(streams[1]): 
+            ordered_sentences = [ordered_sentences[i] for i not in current_batch_indices]
+            
             if is_first == False:
                 prev_generated_outputs = prev_model_output['sequences']
                 prev_updated_kv_caches = prev_model_output['past_key_values']
@@ -50,15 +52,17 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
             else:
                 is_first = False
             
-            next_batch_indices = [ordered_sentences[i + batch_size][2] for i in range(min(batch_size, len(ordered_sentences) - batch_size))]
-            ordered_sentences = [ordered_sentences[i] for i not in next_batch_indices]
+            next_batch_indices = [ordered_sentences[i][2] for i in range(min(batch_size, len(ordered_sentences)))]
+            next_batch = [ordered_sentences[i][1] for i in range(min(batch_size, len(ordered_sentences)))]
+            input_ids = torch.cat([tokenizer.encode(text, return_tensors='pt') for text in next_batch], dim=0).to(device)
+            
             next_kv_caches = [kv_caches[i].to(device) for i in next_batch_indices]
             current_kv_caches = next_kv_caches
 
         streams[1].synchronize()
-        streams[2].synchronize()
+        streams[0].synchronize()
 
-        prev_batch_indices = current_indices
+        prev_batch_indices = current_batch_indices
         prev_model_output = current_model_output
 
     return [text for text in generated_texts if text is not None], kv_caches
