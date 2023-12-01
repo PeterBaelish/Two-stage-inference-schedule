@@ -44,9 +44,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
 
                 # 清理GPU上的内存
                 del gpu_batch
-                #torch.cuda.empty_cache()
-                del kv_caches[i-1].cuda()
-                del generated_outputs[i-1].cuda()
+                torch.cuda.empty_cache()
             
             gpu_batch = next_gpu_batch if i < len(input_id_batches) - 1 else None
 
