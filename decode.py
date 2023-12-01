@@ -66,14 +66,14 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
             next_kv_caches = [kv_caches[i].to(device) for i in next_batch_indices]
             
             prev_batch_indices = current_batch_indices
-            
             current_batch_indices = next_batch_indices
-            current_input_ids = next_input_ids
-            current_kv_caches = next_kv_caches
 
         streams[1].synchronize()
         streams[0].synchronize()
 
+        current_input_ids = next_input_ids
+        current_kv_caches = next_kv_caches
+        
         prev_model_output = current_model_output
         del current_model_output
 
