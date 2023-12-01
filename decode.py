@@ -52,6 +52,10 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
                         ordered_sentences.append((len(text), text, idx))
                         kv_caches[idx] = prev_updated_kv_caches[i].to('cpu')
 
+                del prev_model_output
+                del prev_generated_outputs
+                del prev_updated_kv_caches
+                
                 ordered_sentences.sort(key=lambda x: x[0])
             else:
                 is_first = False
@@ -71,6 +75,7 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
         streams[0].synchronize()
 
         prev_model_output = current_model_output
+        del current_model_output
 
     return [text for text in generated_texts if text is not None], kv_caches
 
