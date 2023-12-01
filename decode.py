@@ -22,6 +22,8 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
     # current_batch_indices: batch中的句子在原来存储列表中的位置
     # current_batch: text on CPU
     # current_input_ids: last token of text on GPU
+
+    #initialize
     current_kv_caches = [kv_caches[i].to(device) for i in range(batch_len)] if ordered_sentences else []
     current_batch_indices = [ordered_sentences[i][2] for i in range(batch_len)]
     current_batch = [ordered_sentences[i][1] for i in range(batch_len)]
@@ -77,6 +79,19 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
         prev_model_output = current_model_output
         del current_model_output
 
+    #post processing
+    prev_generated_outputs = prev_model_output['sequences']
+    prev_updated_kv_caches = prev_model_output['past_key_values']
+                
+    for i, idx in enumerate(prev_batch_indices):
+        output = prev_generated_outputs[i].to('cpu')
+        text = tokenizer.decode(output, skip_special_tokens=True)
+        generated_texts[idx] = text
+
+    del prev_model_output
+    del prev_generated_outputs
+    del prev_updated_kv_caches
+    
     return [text for text in generated_texts if text is not None], kv_caches
 
 # 示例输入和KV缓存
