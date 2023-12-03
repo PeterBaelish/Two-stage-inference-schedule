@@ -21,6 +21,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     input_id_batches = input_ids.split(batch_size)
 
     generated_texts = []
+    generated_outputs = []
     kv_caches = []
     streams = [Stream(device=device) for _ in range(2)]
 

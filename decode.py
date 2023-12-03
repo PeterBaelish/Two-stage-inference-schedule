@@ -40,7 +40,7 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
                                           use_cache=True, return_dict_in_generate=True, past_key_values=current_kv_caches)
 
         with torch.cuda.stream(streams[1]): 
-            ordered_sentences = [ordered_sentences[i] for i not in current_batch_indices]
+            ordered_sentences = [ordered_sentences[i] for i in range(len(ordered_sentences)) if i not in current_batch_indices]
             
             if is_first == False:
                 prev_generated_outputs = prev_model_output['sequences']
