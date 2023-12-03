@@ -33,8 +33,8 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 加载模型和分词器
-    model = GPT2LMHeadModel.from_pretrained(model_name).to(device)
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
+    tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
 
     # 将输入文本编码为批处理
     input_ids = tokenizer.encode(input_texts, return_tensors='pt').to(device)

@@ -5,8 +5,8 @@ from torch.cuda import Stream
 def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_length=50, batch_size=2):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = GPT2LMHeadModel.from_pretrained(model_name).to(device)
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
+    tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
 
     ordered_sentences = [(len(tokenizer.encode(text)), text, i) for i, text in enumerate(input_texts)]
     ordered_sentences.sort(key=lambda x: x[0])

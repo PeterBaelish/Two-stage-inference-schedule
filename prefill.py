@@ -7,8 +7,8 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 加载模型和分词器
-    model = GPT2LMHeadModel.from_pretrained(model_name).to(device)
-    tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+    model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
+    tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
 
     # 对输入文本按长度排序
     input_texts.sort(key=len)
