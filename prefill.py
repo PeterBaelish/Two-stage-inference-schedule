@@ -9,6 +9,9 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     # 加载模型和分词器
     model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
+
+    # tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "left"
     
     pad_token = '<PAD>'
     if pad_token not in tokenizer.get_added_vocab():
@@ -62,7 +65,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
         # 在第一个流中执行当前批次的推理
         with torch.cuda.stream(streams[0]):
             # 启用past_key_values来保存KV缓存
-            model_output = model.generate(gpu_batch, max_length=max_length, pad_token_id=tokenizer.eos_token_id,
+            model_output = model.generate(input_ids=gpu_batch['input_ids'],attention_mask=gpu_batch['attention_mask'], max_length=max_length, pad_token_id=tokenizer.eos_token_id,
                                           use_cache=True, return_dict_in_generate=True)
 
             generated_outputs.append(model_output['sequences'])

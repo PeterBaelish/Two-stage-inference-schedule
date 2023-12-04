@@ -36,11 +36,26 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
 
-    # 将输入文本编码为批处理
-    input_ids = tokenizer.encode(input_texts, return_tensors='pt').to(device)
+    tokenizer.padding_side = "left"
+    
+    pad_token = '<PAD>'
+    if pad_token not in tokenizer.get_added_vocab():
+        tokenizer.add_tokens([pad_token])
+        tokenizer.pad_token = pad_token
+    
+    model.resize_token_embeddings(len(tokenizer))
 
-    outputs = model.generate(input_ids, max_length = None, num_return_sequences = 1)
-    result = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    result = []
+
+    input_texts = [input_texts[i:i+batch_size] for i in range(0, len(input_texts), batch_size)]
+
+    for batch in input_texts:
+    # 将输入文本编码为批处理
+        inputs = tokenizer.encode(batch, return_tensors='pt', padding=True).to(device)
+        outputs = model.generate(input_ids = inputs['input_ids'], attention_mask = inputs['attention_mask'], max_length = None, num_return_sequences = 1)
+        
+        for sentence in outputs:
+            result.append(tokenizer.decode(sentence, skip_special_tokens=True))
 
     return result
     
