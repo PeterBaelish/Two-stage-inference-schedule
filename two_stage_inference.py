@@ -30,7 +30,7 @@ def two_stage_inference(input_texts, model_name='gpt2', max_length=50, batch_siz
 
 def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
 
     # 加载模型和分词器
     model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)

@@ -4,14 +4,14 @@ from torch.cuda import Stream
 
 def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
 
     # 加载模型和分词器
     model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
     
     pad_token = '<PAD>'
-    if pad_token not in tokenizer.get_added_vacab():
+    if pad_token not in tokenizer.get_added_vocab():
         tokenizer.add_tokens([pad_token])
         tokenizer.pad_token = pad_token
     
@@ -27,7 +27,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
 
     for batch in input_ids:
         inputs = tokenizer(batch, padding=True, return_tensors='pt')
-        inputs = torch.cat(inputs, dim=0)
+        # inputs = torch.cat(inputs, dim=0)
         input_id_batches.append(inputs)
 
     generated_texts = []

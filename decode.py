@@ -3,7 +3,7 @@ from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from torch.cuda import Stream
 
 def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_length=50, batch_size=2):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
 
     model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
