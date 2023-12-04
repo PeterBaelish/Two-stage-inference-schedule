@@ -14,12 +14,15 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     # input_texts = [str(text) for text in input_texts]
     input_texts.sort(key=lambda text: len(tokenizer.tokenize(text)))
 
-    # 将输入文本编码为批处理
-    input_ids = [tokenizer.encode(text, return_tensors='pt') for text in input_texts]
-    input_ids = torch.cat(input_ids, dim=0)
-    
     # 将批次分割
-    input_id_batches = input_ids.split(batch_size)
+    input_ids = input_ids.split(batch_size)
+
+    input_id_batches = []
+
+    for batch in input_ids:
+        inputs = tokenizer(batch, padding=True, return_tensors='pt')
+        inputs = torch.cat(inputs, dim=0)
+        input_id_batches.append(inputs)
 
     generated_texts = []
     generated_outputs = []
