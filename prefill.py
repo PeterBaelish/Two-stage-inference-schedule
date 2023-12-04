@@ -11,6 +11,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
 
     # 对输入文本按长度排序
+    # input_texts = [str(text) for text in input_texts]
     input_texts.sort(key=lambda text: len(tokenizer.tokenize(text)))
 
     # 将输入文本编码为批处理
@@ -77,11 +78,3 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
             generated_texts.append(text)
 
     return generated_texts, kv_caches
-
-# 示例输入
-input_texts = ["The universe is", "Artificial intelligence is", ...] # 更多文本
-generated_texts, kv_caches = generate_text_with_kv_cache(input_texts)
-
-# 打印生成的文本和保存KV缓存
-for text in generated_texts:
-    print(text)

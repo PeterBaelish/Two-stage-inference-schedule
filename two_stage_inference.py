@@ -19,7 +19,7 @@ def two_stage_inference(input_texts, model_name='gpt2', max_length=50, batch_siz
 
     # 第二阶段：Decode，继续生成文本
     continued_texts, _ = continue_text_with_kv_cache(
-        input_texts, 
+        prefill_texts, 
         kv_caches, 
         model_name=model_name, 
         max_length=max_length, 

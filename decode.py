@@ -93,12 +93,3 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
     del prev_updated_kv_caches
     
     return [text for text in generated_texts if text is not None], kv_caches
-
-# 示例输入和KV缓存
-input_texts = ["The future of AI is", "In a distant galaxy", ...]
-previous_kv_caches = ...
-
-continued_texts, new_kv_caches = continue_text_with_kv_cache(input_texts, previous_kv_caches)
-
-for text in continued_texts:
-    print(text)
