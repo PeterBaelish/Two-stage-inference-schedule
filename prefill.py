@@ -15,7 +15,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     input_texts.sort(key=lambda text: len(tokenizer.tokenize(text)))
 
     # 将批次分割
-    input_ids = input_ids.split(batch_size)
+    input_ids = input_texts.split(batch_size)
 
     input_id_batches = []
 
