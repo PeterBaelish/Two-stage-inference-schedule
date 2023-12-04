@@ -47,12 +47,12 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
                 prev_updated_kv_caches = prev_model_output['past_key_values']
                 
                 for i, idx in enumerate(prev_batch_indices):
-                    output = prev_generated_outputs[i].to('cpu')
+                    output = prev_generated_outputs[i].to('cpu', non_blocking=True)
                     text = tokenizer.decode(output, skip_special_tokens=True)
                     generated_texts[idx] = text
                     if not text.endswith('.'): # maybe not endwith EOS
                         ordered_sentences.append((len(text), text, idx))
-                        kv_caches[idx] = prev_updated_kv_caches[i].to('cpu')
+                        kv_caches[idx] = prev_updated_kv_caches[i].to('cpu', non_blocking=True)
 
                 del prev_model_output
                 del prev_generated_outputs
@@ -84,7 +84,7 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
     prev_updated_kv_caches = prev_model_output['past_key_values']
                 
     for i, idx in enumerate(prev_batch_indices):
-        output = prev_generated_outputs[i].to('cpu')
+        output = prev_generated_outputs[i].to('cpu', non_blocking=True)
         text = tokenizer.decode(output, skip_special_tokens=True)
         generated_texts[idx] = text
 
