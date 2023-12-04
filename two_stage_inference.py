@@ -37,7 +37,7 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
 
     tokenizer.padding_side = "left"
-    
+
     pad_token = '<PAD>'
     if pad_token not in tokenizer.get_added_vocab():
         tokenizer.add_tokens([pad_token])
@@ -66,6 +66,14 @@ with open('extracted_human_conversations.json', 'r') as file:
 
 input_texts = data[:512]
 
+base_start_time = time.time()
+output_texts = base_inference(input_texts)
+base_end_time = time.time()
+base_execution_time = base_end_time - base_start_time
+
+for text in output_texts:
+    print(text)
+
 # 执行两阶段推理
 my_start_time = time.time()
 output_texts = two_stage_inference(input_texts, max_length=10, batch_size=16)
@@ -73,14 +81,6 @@ my_end_time = time.time()
 my_execution_time = my_end_time - my_start_time
 
 # 打印输出文本
-for text in output_texts:
-    print(text)
-
-base_start_time = time.time()
-output_texts = base_inference(input_texts)
-base_end_time = time.time()
-base_execution_time = base_end_time - base_start_time
-
 for text in output_texts:
     print(text)
 
