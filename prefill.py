@@ -11,7 +11,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
 
     # 对输入文本按长度排序
-    input_texts.sort(key=len)
+    input_texts.sort(key=lambda text: len(tokenizer.tokenize(text)))
 
     # 将输入文本编码为批处理
     input_ids = [tokenizer.encode(text, return_tensors='pt') for text in input_texts]

@@ -46,7 +46,7 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     
 
 # 示例输入
-with open(two_stage_inference.py, 'r') as file:
+with open(extracted_human_conversations.json, 'r') as file:
     data = json.load(file)  # 更多文本
 
 input_texts = data[:512]
