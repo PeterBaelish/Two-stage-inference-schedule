@@ -9,13 +9,19 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     # 加载模型和分词器
     model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
     tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
-
+    
+    pad_token = '<PAD>'
+    if pad_token not in tokenizer.get_added_vacab():
+        tokenizer.add_tokens([pad_token])
+        tokenizer.pad_token = pad_token
+    
+    model.resize_token_embeddings(len(tokenizer))
     # 对输入文本按长度排序
     # input_texts = [str(text) for text in input_texts]
     input_texts.sort(key=lambda text: len(tokenizer.tokenize(text)))
 
     # 将批次分割
-    input_ids = input_texts.split(batch_size)
+    input_ids = [input_texts[i:i+batch_size] for i in range(0, len(input_texts), batch_size)]
 
     input_id_batches = []
 
