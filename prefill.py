@@ -37,13 +37,13 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
 
     # 在第二个流中预加载第一个批次到GPU
     with torch.cuda.stream(streams[1]):
-        gpu_batch = input_id_batches[0].to(device, non_blocking=True)
+        gpu_batch = {key: value.to(device, non_blocking=True) for key, value in input_id_batches[0].items()}
 
     for i in range(len(input_id_batches)):
         with torch.cuda.stream(streams[1]):
             # 将下一个批次的数据拷贝到GPU（如果存在）
             if i < len(input_id_batches) - 1:
-                next_gpu_batch = input_id_batches[i + 1].to(device, non_blocking=True)
+                next_gpu_batch = {key: value.to(device, non_blocking=True) for key, value in input_id_batches[i+1].items()}
 
             # 将上一个批次的结果及其KV缓存拷贝回CPU（跳过第一个批次）
             if i > 0:

@@ -24,10 +24,10 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
     # current_input_ids: last token of text on GPU
 
     #initialize
-    current_kv_caches = [kv_caches[i].to(device) for i in range(batch_len)] if ordered_sentences else []
+    current_kv_caches = [kv_caches[i].to(device, non_blocking=True) for i in range(batch_len)] if ordered_sentences else []
     current_batch_indices = [ordered_sentences[i][2] for i in range(batch_len)]
     current_batch = [ordered_sentences[i][1] for i in range(batch_len)]
-    current_input_ids = torch.cat([tokenizer.encode(text.split()[-1], return_tensors='pt') for text in current_batch], dim=0).to(device)
+    current_input_ids = torch.cat([tokenizer.encode(text.split()[-1], return_tensors='pt') for text in current_batch], dim=0).to(device, non_blocking=True)
 
     while ordered_sentences:
         batch_len = min(batch_size, len(ordered_sentences))
@@ -64,8 +64,8 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
             
             next_batch_indices = [ordered_sentences[i][2] for i in range(min(batch_size, len(ordered_sentences)))]
             next_batch = [ordered_sentences[i][1] for i in range(min(batch_size, len(ordered_sentences)))]
-            next_input_ids = torch.cat([tokenizer.encode(text.split()[-1], return_tensors='pt') for text in next_batch], dim=0).to(device)
-            next_kv_caches = [kv_caches[i].to(device) for i in next_batch_indices]
+            next_input_ids = torch.cat([tokenizer.encode(text.split()[-1], return_tensors='pt') for text in next_batch], dim=0).to(device, non_blocking=True)
+            next_kv_caches = [kv_caches[i].to(device, non_blocking=True) for i in next_batch_indices]
             
             prev_batch_indices = current_batch_indices
             current_batch_indices = next_batch_indices
