@@ -29,7 +29,7 @@ def two_stage_inference(input_texts, model_name='gpt2', iter_max_length=50, batc
 
     return continued_texts
 
-def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
+def interation_level_base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     device = "cuda"
@@ -41,7 +41,7 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     tokenizer.padding_side = "left"
     tokenizer.pad_token = tokenizer.unk_token
 
-    all_results = []
+    results = []
 
     input_texts = [input_texts[i:i+batch_size] for i in range(0, len(input_texts), batch_size)]
 
@@ -89,7 +89,6 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
                 break
 
         # collect results
-        results = []
         for i in range(len(output_ids)):
             if ending[i] != -1:
                 output_ = output_ids[i][: l_input_ids + ending[i]]
@@ -117,18 +116,38 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
                 length=length,
             )
             results.append(result)
-        
-        all_results.append(results)
+    
+    return results
+    
+def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
+    # 确保CUDA可用
+    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = "cuda"
+
+    # 加载模型和分词器
+    model, tokenizer = load_model(model_name, device, num_gpus = 1)
+
+    model.to(device)
+    tokenizer.padding_side = "left"
+    tokenizer.pad_token = tokenizer.unk_token
+
+    all_results = []
+
+    input_texts = [input_texts[i:i+batch_size] for i in range(0, len(input_texts), batch_size)]
+
+    for batch in input_texts:
+    # 将输入文本编码为批处理
+        # TODO
+        results = []
     
     return all_results
-    
 
 # 示例输入
 with open('extracted_human_conversations.json', 'r') as file:
     data = json.load(file)  # 更多文本
 
 input_texts = data[:512]
-input_texts = ["Hi, I am a robot", "Hi, I am a human"]
+# input_texts = ["Hi, I am a robot", "Hi, I am a human"]
 
 model_name = "../vicuna-1.5-7b"
 batch_size = 16
@@ -141,7 +160,7 @@ base_end_time = time.time()
 base_execution_time = base_end_time - base_start_time
 
 for text in output_texts:
-    print(text)
+    print(text['sentence'])
 
 # 执行两阶段推理
 my_start_time = time.time()
