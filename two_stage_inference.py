@@ -32,9 +32,10 @@ def two_stage_inference(input_texts, model_name='gpt2', iter_max_length=50, batc
 def base_inference(input_texts, model_name='gpt2', batch_size=2):
     # 确保CUDA可用
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
+    device = "cuda"
 
     # 加载模型和分词器
-    model, tokenizer = load_model(model_name, device, num_gpus = 1)
+    model, tokenizer = load_model(model_name = model_name, device = device, num_gpus = 1)
 
     model.to(device)
     tokenizer.padding_side = "left"
