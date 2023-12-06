@@ -50,7 +50,8 @@ def base_inference(input_texts, model_name='gpt2', batch_size=2):
         inputs = tokenizer(batch, return_tensors='pt', padding=True).to(device)
         outputs = model(input_ids = inputs['input_ids'], attention_mask = inputs['attention_mask'])
         
-        for sentence in outputs:
+        for i in range(outputs[0].shape[0]):
+            sentence = outputs[0][i]
             result.append(tokenizer.decode(sentence, skip_special_tokens=True))
 
     return result
