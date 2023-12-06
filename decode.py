@@ -33,7 +33,7 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
         batch_len = min(batch_size, len(ordered_sentences))
 
         # 调整最大长度限制
-        adjusted_max_length = max_length if len(ordered_sentences) >= batch_size else None
+        adjusted_max_length = max_length if len(ordered_sentences) >= batch_size else model.config.max_length
 
         with torch.cuda.stream(streams[0]):
             current_model_output = model.generate(current_input_ids, max_length=adjusted_max_length, pad_token_id=tokenizer.eos_token_id,
