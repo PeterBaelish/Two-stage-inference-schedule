@@ -1,26 +1,21 @@
 import torch
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
+# from transformers import GPT2LMHeadModel, GPT2Tokenizer
+from fastchat.serve.inference import load_model
 from torch.cuda import Stream
 
 def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-
+    device = "cuda"
+    
     # 加载模型和分词器
-    model = GPT2LMHeadModel.from_pretrained('../gpt2').to(device)
-    tokenizer = GPT2Tokenizer.from_pretrained('../gpt2')
+    model, tokenizer = load_model(model_name = model_name, device = device, num_gpus = 1)
 
-    # tokenizer.pad_token = tokenizer.eos_token
+    model.to(device)
+    tokenizer.pad_token = tokenizer.unk_token
     tokenizer.padding_side = "left"
     
-    pad_token = '<PAD>'
-    if pad_token not in tokenizer.get_added_vocab():
-        tokenizer.add_tokens([pad_token])
-        tokenizer.pad_token = pad_token
-    
-    model.resize_token_embeddings(len(tokenizer))
     # 对输入文本按长度排序
-    # input_texts = [str(text) for text in input_texts]
     input_texts.sort(key=lambda text: len(tokenizer.tokenize(text)))
 
     # 将批次分割
@@ -30,7 +25,6 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
 
     for batch in input_ids:
         inputs = tokenizer(batch, padding=True, return_tensors='pt')
-        # inputs = torch.cat(inputs, dim=0)
         input_id_batches.append(inputs)
 
     generated_texts = []
@@ -73,6 +67,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
 
         # 等待当前批次推理完成
         streams[0].synchronize()
+        streams[1].synchronize()
 
     # 处理最后一个批次的输出和KV缓存
     with torch.cuda.stream(streams[1]):
