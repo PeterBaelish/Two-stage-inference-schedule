@@ -7,7 +7,7 @@ def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_l
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     device = "cuda"
 
-    model, tokenizer = load_model(model_name = model_name, device = device, num_gpus = 1)
+    model, tokenizer = load_model(model_name, device, num_gpus = 1)
 
     model.to(device)
     

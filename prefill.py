@@ -9,7 +9,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
     device = "cuda"
     
     # 加载模型和分词器
-    model, tokenizer = load_model(model_name = model_name, device = device, num_gpus = 1)
+    model, tokenizer = load_model(model_name, device, num_gpus = 1)
 
     model.to(device)
     tokenizer.pad_token = tokenizer.unk_token

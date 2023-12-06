@@ -29,32 +29,98 @@ def two_stage_inference(input_texts, model_name='gpt2', iter_max_length=50, batc
 
     return continued_texts
 
-def base_inference(input_texts, model_name='gpt2', batch_size=2):
+def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
     device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
     device = "cuda"
 
     # 加载模型和分词器
-    model, tokenizer = load_model(model_name = model_name, device = device, num_gpus = 1)
+    model, tokenizer = load_model(model_name, device, num_gpus = 1)
 
     model.to(device)
     tokenizer.padding_side = "left"
     tokenizer.pad_token = tokenizer.unk_token
 
-    result = []
+    all_results = []
 
     input_texts = [input_texts[i:i+batch_size] for i in range(0, len(input_texts), batch_size)]
 
     for batch in input_texts:
     # 将输入文本编码为批处理
-        inputs = tokenizer(batch, return_tensors='pt', padding=True).to(device)
-        outputs = model(input_ids = inputs['input_ids'], attention_mask = inputs['attention_mask'])
-        
-        for i in range(outputs[0].shape[0]):
-            sentence = outputs[0][i]
-            result.append(tokenizer.decode(sentence, skip_special_tokens=True))
+        inputs = tokenizer(batch, return_tensors="pt", padding=True)
+        input_ids = inputs.input_ids.to(device)
+        l_input_ids = len(input_ids[0])
+        output_ids = input_ids
+        attention_mask = inputs.attention_mask.to(device)
 
-    return result
+        ending = [-1] * len(batch)
+
+        for i in range(max_length):
+            # generation
+            if i == 0:
+                out = model(input_ids, use_cache=True, attention_mask=attention_mask)
+            else:
+                out = model(
+                    input_ids=token,
+                    use_cache=True,
+                    attention_mask=attention_mask,
+                    past_key_values=past_key_values,
+                )
+
+            # sample
+            last_token_logits = out.logits[:, -1]
+            token = torch.argmax(last_token_logits, dim=-1, keepdim=True)
+            output_ids = torch.cat((output_ids, token), dim=1)
+
+            # update attn & kv cache
+            past_key_values = out.past_key_values
+            attn_dtype = attention_mask.dtype
+            extend_mask = torch.ones(len(token), 1, dtype=attn_dtype).to(device)
+            attention_mask = torch.cat((attention_mask, extend_mask), dim=1)
+
+            # ending detection
+            num_ended = 0
+            for j in range(len(batch)):
+                if ending[j] == -1 and token[j] == tokenizer.eos_token_id:
+                    ending[j] = i
+                if ending[j] != -1:
+                    num_ended += 1
+            if num_ended == len(batch):
+                break
+
+        # collect results
+        results = []
+        for i in range(len(output_ids)):
+            if ending[i] != -1:
+                output_ = output_ids[i][: l_input_ids + ending[i]]
+                is_finished = True
+            else:
+                output_ = output_ids[i]
+                is_finished = False
+            sentence = tokenizer.decode(output_, skip_special_tokens=True)
+            output = sentence[len(batch[i]) :]
+
+            num_input_tokens = len(input_ids[i])
+            num_output_tokens = len(tokenizer(output).input_ids)
+            num_total_tokens = num_input_tokens + num_output_tokens
+            length = output_ids[i].shape[0] - l_input_ids + 1
+
+            # return
+            result = dict(
+                input=batch[i],
+                output=output,
+                sentence=sentence,
+                num_input_tokens=num_input_tokens,
+                num_output_tokens=num_output_tokens,
+                num_total_tokens=num_total_tokens,
+                is_finished=is_finished,
+                length=length,
+            )
+            results.append(result)
+        
+        all_results.append(results)
+    
+    return all_results
     
 
 # 示例输入
@@ -67,9 +133,10 @@ input_texts = ["Hi, I am a robot", "Hi, I am a human"]
 model_name = "../vicuna-1.5-7b"
 batch_size = 16
 iter_max_length = 20
+max_length = 100
 
 base_start_time = time.time()
-output_texts = base_inference(input_texts, model_name = model_name, batch_size = batch_size)
+output_texts = base_inference(input_texts, model_name = model_name, max_length = max_length, batch_size = batch_size)
 base_end_time = time.time()
 base_execution_time = base_end_time - base_start_time
 
