@@ -138,8 +138,15 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     for batch in input_texts:
     # 将输入文本编码为批处理
         # TODO
-        results = []
-    
+        inputs = tokenizer(batch, return_tensors="pt", padding=True)
+        input_ids = inputs.input_ids.to(device)
+        attention_mask = inputs.attention_mask.to(device)
+
+        outputs = model.generate(input_ids = input_ids, attention_mask = attention_mask, max_length = max_length)
+
+        results = [tokenizer.decode(output, skip_special_tokens=True) for output in outputs]
+        all_results.append(results)
+
     return all_results
 
 # 示例输入
@@ -147,7 +154,7 @@ with open('extracted_human_conversations.json', 'r') as file:
     data = json.load(file)  # 更多文本
 
 input_texts = data[:512]
-# input_texts = ["Hi, I am a robot", "Hi, I am a human"]
+input_texts = ["Hi, I am a robot", "Hi, I am a human"]
 
 model_name = "../vicuna-1.5-7b"
 batch_size = 16
@@ -158,6 +165,14 @@ base_start_time = time.time()
 output_texts = base_inference(input_texts, model_name = model_name, max_length = max_length, batch_size = batch_size)
 base_end_time = time.time()
 base_execution_time = base_end_time - base_start_time
+
+for text in output_texts:
+    print(text)
+
+interation_level_base_start_time = time.time()
+output_texts = interation_level_base_inference(input_texts, model_name = model_name, max_length = max_length, batch_size = batch_size)
+interation_level_base_end_time = time.time()
+interation_level_base_execution_time = interation_level_base_end_time - interation_level_base_start_time
 
 for text in output_texts:
     print(text['sentence'])
@@ -172,4 +187,4 @@ my_execution_time = my_end_time - my_start_time
 for text in output_texts:
     print(text)
 
-print(f"my time : {my_execution_time} sec, base time : {base_execution_time} sec")
+print(f"my time : {my_execution_time} sec, base time : {base_execution_time} sec, interation level base execution time : {interation_level_base_execution_time} sec")
