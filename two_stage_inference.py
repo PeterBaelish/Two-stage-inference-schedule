@@ -161,6 +161,8 @@ batch_size = 16
 iter_max_length = 20
 max_length = 100
 
+print("=========================== base inference =====================================")
+
 base_start_time = time.time()
 output_texts = base_inference(input_texts, model_name = model_name, max_length = max_length, batch_size = batch_size)
 base_end_time = time.time()
@@ -169,6 +171,8 @@ base_execution_time = base_end_time - base_start_time
 for text in output_texts:
     print(text)
 
+print("=========================== interation level base inference =====================================")
+
 interation_level_base_start_time = time.time()
 output_texts = interation_level_base_inference(input_texts, model_name = model_name, max_length = max_length, batch_size = batch_size)
 interation_level_base_end_time = time.time()
@@ -176,6 +180,8 @@ interation_level_base_execution_time = interation_level_base_end_time - interati
 
 for text in output_texts:
     print(text['sentence'])
+
+print("=========================== two stage inference =====================================")
 
 # 执行两阶段推理
 my_start_time = time.time()
