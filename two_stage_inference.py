@@ -159,7 +159,7 @@ input_texts = ["Hi, I am a robot", "Hi, I am a human"]
 model_name = "../vicuna-1.5-7b"
 batch_size = 16
 iter_max_length = 20
-max_length = 100
+max_length = 256
 
 print("=========================== base inference =====================================")
 
@@ -169,7 +169,8 @@ base_end_time = time.time()
 base_execution_time = base_end_time - base_start_time
 
 for text in output_texts:
-    print(text)
+    for item in text:
+        print(item)
 
 print("=========================== interation level base inference =====================================")
 
