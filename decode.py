@@ -3,8 +3,13 @@ import torch
 from fastchat.serve.inference import load_model
 from torch.cuda import Stream
 
-def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_length=50, batch_size=2):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def continue_text_with_kv_cache(input_texts, generated_ids, generated_attention_mask, kv_caches, model_name='gpt2', max_length=50, batch_size=2):
+    
+    # TODO: emit the pad token before sort
+    # We don't need to do this first time, because prefill has sorted the seq and only generate one token, so input is still sorted
+    
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda"
 
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
 

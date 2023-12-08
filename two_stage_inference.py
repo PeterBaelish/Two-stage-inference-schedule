@@ -21,6 +21,7 @@ def two_stage_inference(input_texts, model_name='gpt2', iter_max_length=50, batc
     # 第二阶段：Decode，继续生成文本
     continued_texts, _ = continue_text_with_kv_cache(
         generated_ids, 
+        generated_attention_mask, 
         kv_caches, 
         model_name=model_name, 
         max_length=iter_max_length, 
@@ -31,7 +32,8 @@ def two_stage_inference(input_texts, model_name='gpt2', iter_max_length=50, batc
 
 def interation_level_base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda"
 
     # 加载模型和分词器
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
@@ -120,7 +122,8 @@ def interation_level_base_inference(input_texts, model_name='gpt2', max_length=5
     
 def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda"
 
     # 加载模型和分词器
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
@@ -135,7 +138,6 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
 
     for batch in input_texts:
     # 将输入文本编码为批处理
-        # TODO
         inputs = tokenizer(batch, return_tensors="pt", padding=True)
         input_ids = inputs.input_ids.to(device)
         attention_mask = inputs.attention_mask.to(device)

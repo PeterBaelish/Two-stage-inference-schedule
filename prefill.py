@@ -5,7 +5,8 @@ from torch.cuda import Stream
 
 def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda"
     
     # 加载模型和分词器
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
@@ -40,6 +41,8 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
     for i in range(len(input_id_batches)):
         with torch.cuda.stream(streams[1]):
             # 将下一个批次的数据拷贝到GPU（如果存在）
+            next_gpu_batch = None
+
             if i < len(input_id_batches) - 1:
                 next_gpu_batch = {key: value.to(device, non_blocking=True) for key, value in input_id_batches[i+1].items()}
 
@@ -72,7 +75,8 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
         streams[1].synchronize()
 
         gpu_batch = next_gpu_batch if i < len(input_id_batches) - 1 else None
-        del next_gpu_batch
+        if next_gpu_batch is not None:
+            del next_gpu_batch
 
         prev_model_output = current_model_output
         del current_model_output
