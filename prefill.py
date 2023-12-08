@@ -48,13 +48,14 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
 
             # 将上一个批次的结果及其KV缓存拷贝回CPU（跳过第一个批次）
             if i > 0:
-                prev_model_output_cpu = prev_model_output.to('cpu')
+                logits_cpu = prev_model_output.logits.to('cpu')
+                past_key_values_cpu = prev_model_output.past_key_values.to('cpu')
                 del prev_model_output
                 torch.cuda.empty_cache()
 
-                kv_caches.append(prev_model_output_cpu.past_key_values)
+                kv_caches.append(past_key_values_cpu)
 
-                last_token_logits = prev_model_output_cpu.logits[:, -1]
+                last_token_logits = logits_cpu[:, -1]
                 token = torch.argmax(last_token_logits, dim=-1, keepdim=True)
                 output_ids = torch.cat((input_id_batches[i-1]['input_ids'], token), dim=1)
 
@@ -83,13 +84,14 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
 
     # 处理最后一个批次的输出和KV缓存
     with torch.cuda.stream(streams[1]):
-        prev_model_output_cpu = prev_model_output.to('cpu')
+        logits_cpu = prev_model_output.logits.to('cpu')
+        past_key_values_cpu = prev_model_output.past_key_values.to('cpu')
         del prev_model_output
         torch.cuda.empty_cache()
 
-        kv_caches.append(prev_model_output_cpu.past_key_values)
+        kv_caches.append(past_key_values_cpu)
 
-        last_token_logits = prev_model_output_cpu.logits[:, -1]
+        last_token_logits = logits_cpu[:, -1]
         token = torch.argmax(last_token_logits, dim=-1, keepdim=True)
         output_ids = torch.cat((input_id_batches[len(input_id_batches) - 1]['input_ids'], token), dim=1)
 
