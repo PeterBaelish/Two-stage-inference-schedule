@@ -2,6 +2,7 @@
 import json
 import time
 import torch
+import os
 # from transformers import GPT2LMHeadModel, GPT2Tokenizer
 from fastchat.serve.inference import load_model
 
@@ -11,16 +12,15 @@ from decode import continue_text_with_kv_cache
 def two_stage_inference(input_texts, model_name='gpt2', iter_max_length=50, batch_size=2):
     # 第一阶段：Prefill，生成KV缓存
     # 我们只生成一个token，所以max_length设置为当前文本长度加1
-    prefill_texts, kv_caches = generate_text_with_kv_cache(
+    generated_ids, kv_caches, generated_attention_mask = generate_text_with_kv_cache(
         input_texts, 
         model_name=model_name, 
-        max_length=[len(text) + 1 for text in input_texts],
         batch_size=batch_size
     )
 
     # 第二阶段：Decode，继续生成文本
     continued_texts, _ = continue_text_with_kv_cache(
-        prefill_texts, 
+        generated_ids, 
         kv_caches, 
         model_name=model_name, 
         max_length=iter_max_length, 
@@ -31,8 +31,7 @@ def two_stage_inference(input_texts, model_name='gpt2', iter_max_length=50, batc
 
 def interation_level_base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    device = "cuda"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 加载模型和分词器
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
@@ -121,8 +120,7 @@ def interation_level_base_inference(input_texts, model_name='gpt2', max_length=5
     
 def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    device = "cuda"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 加载模型和分词器
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
@@ -148,6 +146,8 @@ def base_inference(input_texts, model_name='gpt2', max_length=50, batch_size=2):
         all_results.append(results)
 
     return all_results
+
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 # 示例输入
 with open('extracted_human_conversations.json', 'r') as file:

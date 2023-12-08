@@ -4,8 +4,7 @@ from fastchat.serve.inference import load_model
 from torch.cuda import Stream
 
 def continue_text_with_kv_cache(input_texts, kv_caches, model_name='gpt2', max_length=50, batch_size=2):
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    device = "cuda"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
 

@@ -3,10 +3,9 @@ import torch
 from fastchat.serve.inference import load_model
 from torch.cuda import Stream
 
-def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, batch_size=2):
+def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
     # 确保CUDA可用
-    device = torch.device("cuda:5" if torch.cuda.is_available() else "cpu")
-    device = "cuda"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     # 加载模型和分词器
     model, tokenizer = load_model(model_name, device, num_gpus = 1)
@@ -27,14 +26,16 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
         inputs = tokenizer(batch, padding=True, return_tensors='pt')
         input_id_batches.append(inputs)
 
-    generated_texts = []
-    generated_outputs = []
+    generated_ids = []
+    generated_attention_mask = []
     kv_caches = []
     streams = [Stream(device=device) for _ in range(2)]
 
     # 在第二个流中预加载第一个批次到GPU
     with torch.cuda.stream(streams[1]):
         gpu_batch = {key: value.to(device, non_blocking=True) for key, value in input_id_batches[0].items()}
+
+    streams[1].synchronize()
 
     for i in range(len(input_id_batches)):
         with torch.cuda.stream(streams[1]):
@@ -44,44 +45,57 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', max_length=50, b
 
             # 将上一个批次的结果及其KV缓存拷贝回CPU（跳过第一个批次）
             if i > 0:
-                prev_batch_output = generated_outputs[i - 1].to('cpu', non_blocking=True)
-                prev_kv_cache = kv_caches[i - 1].to('cpu', non_blocking=True)
-
-                generated_outputs[i - 1] = prev_batch_output
-                kv_caches[i - 1] = prev_kv_cache
-
-                # 清理GPU上的内存
-                del gpu_batch
+                prev_model_output_cpu = prev_model_output.to('cpu')
+                del prev_model_output
                 torch.cuda.empty_cache()
-            
-            gpu_batch = next_gpu_batch if i < len(input_id_batches) - 1 else None
+
+                kv_caches.append(prev_model_output_cpu.past_key_values)
+
+                last_token_logits = prev_model_output_cpu.logits[:, -1]
+                token = torch.argmax(last_token_logits, dim=-1, keepdim=True)
+                output_ids = torch.cat((input_id_batches[i-1]['input_ids'], token), dim=1)
+
+                generated_ids.append(output_ids)
+
+                attn_dtype = input_id_batches[i-1]['attention_mask'].dtype
+                extend_mask = torch.ones(len(token), 1, dtype=attn_dtype).to(device)
+                input_id_batches[i-1]['attention_mask'] = torch.cat((input_id_batches[i-1]['attention_mask'], extend_mask), dim=1)
+                generated_attention_mask.append(input_id_batches[i-1]['attention_mask'])
 
         # 在第一个流中执行当前批次的推理
         with torch.cuda.stream(streams[0]):
             # 启用past_key_values来保存KV缓存
-            model_output = model.generate(input_ids=gpu_batch['input_ids'], attention_mask=gpu_batch['attention_mask'], max_length=max_length, pad_token_id=tokenizer.eos_token_id,
-                                          use_cache=True, return_dict_in_generate=True)
-
-            generated_outputs.append(model_output['sequences'])
-            kv_caches.append(model_output['past_key_values'])
+            current_model_output = model(input_ids=gpu_batch['input_ids'], attention_mask=gpu_batch['attention_mask'], use_cache=True)
 
         # 等待当前批次推理完成
         streams[0].synchronize()
         streams[1].synchronize()
 
+        gpu_batch = next_gpu_batch if i < len(input_id_batches) - 1 else None
+        del next_gpu_batch
+
+        prev_model_output = current_model_output
+        del current_model_output
+
     # 处理最后一个批次的输出和KV缓存
     with torch.cuda.stream(streams[1]):
-        last_batch_output = generated_outputs[-1].to('cpu', non_blocking=True)
-        last_kv_cache = kv_caches[-1].to('cpu', non_blocking=True)
+        prev_model_output_cpu = prev_model_output.to('cpu')
+        del prev_model_output
+        torch.cuda.empty_cache()
 
-        generated_outputs[-1] = last_batch_output
-        kv_caches[-1] = last_kv_cache
+        kv_caches.append(prev_model_output_cpu.past_key_values)
 
-    # 在CPU上处理所有输出
-    for output in generated_outputs:
-        output = output.cpu()
-        for j in range(output.shape[0]):
-            text = tokenizer.decode(output[j], skip_special_tokens=True)
-            generated_texts.append(text)
+        last_token_logits = prev_model_output_cpu.logits[:, -1]
+        token = torch.argmax(last_token_logits, dim=-1, keepdim=True)
+        output_ids = torch.cat((input_id_batches[len(input_id_batches) - 1]['input_ids'], token), dim=1)
 
-    return generated_texts, kv_caches
+        generated_ids.append(output_ids)
+
+        attn_dtype = input_id_batches[len(input_id_batches) - 1]['attention_mask'].dtype
+        extend_mask = torch.ones(len(token), 1, dtype=attn_dtype).to(device)
+        input_id_batches[len(input_id_batches) - 1]['attention_mask'] = torch.cat((input_id_batches[len(input_id_batches) - 1]['attention_mask'], extend_mask), dim=1)
+        generated_attention_mask.append(input_id_batches[len(input_id_batches) - 1]['attention_mask'])
+
+    streams[1].synchronize()
+
+    return generated_ids, kv_caches, generated_attention_mask
