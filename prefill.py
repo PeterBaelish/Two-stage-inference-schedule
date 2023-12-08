@@ -49,7 +49,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
             # 将上一个批次的结果及其KV缓存拷贝回CPU（跳过第一个批次）
             if i > 0:
                 logits_cpu = prev_model_output.logits.to('cpu')
-                past_key_values_cpu = prev_model_output.past_key_values.to('cpu')
+                past_key_values_cpu = [tuple(kv.to('cpu') for kv in layer_kv) for layer_kv in prev_model_output.past_key_values]
                 del prev_model_output
                 torch.cuda.empty_cache()
 
@@ -62,7 +62,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
                 generated_ids.append(output_ids)
 
                 attn_dtype = input_id_batches[i-1]['attention_mask'].dtype
-                extend_mask = torch.ones(len(token), 1, dtype=attn_dtype).to(device)
+                extend_mask = torch.ones(len(token), 1, dtype=attn_dtype)
                 input_id_batches[i-1]['attention_mask'] = torch.cat((input_id_batches[i-1]['attention_mask'], extend_mask), dim=1)
                 generated_attention_mask.append(input_id_batches[i-1]['attention_mask'])
 
@@ -85,7 +85,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
     # 处理最后一个批次的输出和KV缓存
     with torch.cuda.stream(streams[1]):
         logits_cpu = prev_model_output.logits.to('cpu')
-        past_key_values_cpu = prev_model_output.past_key_values.to('cpu')
+        past_key_values_cpu = [tuple(kv.to('cpu') for kv in layer_kv) for layer_kv in prev_model_output.past_key_values]
         del prev_model_output
         torch.cuda.empty_cache()
 
@@ -98,7 +98,7 @@ def generate_text_with_kv_cache(input_texts, model_name='gpt2', batch_size=2):
         generated_ids.append(output_ids)
 
         attn_dtype = input_id_batches[len(input_id_batches) - 1]['attention_mask'].dtype
-        extend_mask = torch.ones(len(token), 1, dtype=attn_dtype).to(device)
+        extend_mask = torch.ones(len(token), 1, dtype=attn_dtype)
         input_id_batches[len(input_id_batches) - 1]['attention_mask'] = torch.cat((input_id_batches[len(input_id_batches) - 1]['attention_mask'], extend_mask), dim=1)
         generated_attention_mask.append(input_id_batches[len(input_id_batches) - 1]['attention_mask'])
 
