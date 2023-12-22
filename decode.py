@@ -3,10 +3,7 @@ import torch
 from fastchat.serve.inference import load_model
 from torch.cuda import Stream
 
-def continue_text_with_kv_cache(input_texts, generated_ids, generated_attention_mask, kv_caches, model_name='gpt2', max_length=50, batch_size=2):
-    
-    # TODO: emit the pad token before sort
-    # We don't need to do this first time, because prefill has sorted the seq and only generate one token, so input is still sorted
+def continue_text_with_kv_cache(generated_ids, generated_attention_mask, kv_caches, model_name='gpt2', max_length=50, batch_size=2):
     
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = "cuda"
@@ -15,10 +12,11 @@ def continue_text_with_kv_cache(input_texts, generated_ids, generated_attention_
 
     model.to(device)
     
-    ordered_sentences = [(len(tokenizer.encode(text)), text, i) for i, text in enumerate(input_texts)]
-    ordered_sentences.sort(key=lambda x: x[0])
+    ordered_sentences = [(len(ids), ids, i) for i, ids in enumerate(generated_ids)]
+    # We don't need to sort first time, because prefill has sorted the seq and only generate one token, so input is still sorted
+    # ordered_sentences.sort(key=lambda x: x[0])
 
-    generated_texts = [None] * len(input_texts)
+    generated_texts = [None] * len(generated_ids)
     streams = [Stream(device=device) for _ in range(2)]
 
     batch_len = min(batch_size, len(ordered_sentences))
